@@ -100,6 +100,14 @@ type Logger struct {
 	ExtraCalldepth int
 }
 
+// GetBackend retrieves the backend used by the logger
+func (l *Logger) getBackend() LeveledBackend {
+	if l.haveBackend {
+		return l.backend
+	}
+	return defaultBackend
+}
+
 // SetBackend overrides any previously defined backend for this logger.
 func (l *Logger) SetBackend(backend LeveledBackend) {
 	l.backend = backend
@@ -137,7 +145,7 @@ func Reset() {
 
 // IsEnabledFor returns true if the logger is enabled for the given level.
 func (l *Logger) IsEnabledFor(level Level) bool {
-	return defaultBackend.IsEnabledFor(level, l.Module)
+	return l.getBackend().IsEnabledFor(level, l.Module)
 }
 
 func (l *Logger) log(lvl Level, format *string, args ...interface{}) {
@@ -162,12 +170,7 @@ func (l *Logger) log(lvl Level, format *string, args ...interface{}) {
 	// methods, Info(), Fatal(), etc.
 	// ExtraCallDepth allows this to be extended further up the stack in case we
 	// are wrapping these methods, eg. to expose them package level
-	if l.haveBackend {
-		l.backend.Log(lvl, 2+l.ExtraCalldepth, record)
-		return
-	}
-
-	defaultBackend.Log(lvl, 2+l.ExtraCalldepth, record)
+	l.getBackend().Log(lvl, 2+l.ExtraCalldepth, record)
 }
 
 // Fatal is equivalent to l.Critical(fmt.Sprint()) followed by a call to os.Exit(1).
